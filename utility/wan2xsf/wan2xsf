@@ -1,0 +1,168 @@
+#! /bin/bash
+
+inpfile=$1
+
+#scale=0.52917721092
+
+#---------------------add-primevector to xsf
+function addcrys (){
+
+unitlat=`cat $inpfile | grep -A 1 "Begin Unit_Cell_Cart" | tail -1`
+if [ "$unitlat" = "ang" ] || [ "$unitlat" = "Ang" ] ||[ "$unitlat" = "ANG" ]
+then
+	scale=1
+	j=1
+elif [ "$unitlat" = "bohr" ] || [ "$unitlat" = "Bohr" ] || [ "$unitlat" = "BOHR" ]
+then
+	scale=0.52917721092
+	j=1
+else
+	scale=1
+	j=0
+fi
+
+
+latline=$[1+j]
+				lx1=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $1}'` ;
+				ly1=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $2}'` ;
+				lz1=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $3}'` ;
+				
+				lx1=$(echo "scale=8; $lx1*$scale" | bc -l) ;
+				ly1=$(echo "scale=8; $ly1*$scale" | bc -l) ;
+				lz1=$(echo "scale=8; $lz1*$scale" | bc -l) ;
+				ll1=$(echo "scale=8; sqrt(($lx1^2)+($ly1^2)+($lz1^2))" | bc -l) ;
+
+latline=$[2+j]
+        		        lx2=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $1}'` ;
+        		        ly2=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $2}'` ;
+        		        lz2=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $3}'` ;
+        		        
+        		        lx2=$(echo "scale=8; $lx2*$scale" | bc -l) ;
+				ly2=$(echo "scale=8; $ly2*$scale" | bc -l) ;
+				lz2=$(echo "scale=8; $lz2*$scale" | bc -l) ;
+        		        ll2=$(echo "scale=8; sqrt(($lx2^2)+($ly2^2)+($lz2^2))" | bc -l) ;
+latline=$[3+j]
+        		        lx3=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $1}'` ;
+        		        ly3=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $2}'` ;
+        		        lz3=`cat $inpfile | grep -A $latline "Begin Unit_Cell_Cart" | tail -1 | awk '{print $3}'` ;
+        		        
+        		        lx3=$(echo "scale=8; $lx3*$scale" | bc -l) ;
+				ly3=$(echo "scale=8; $ly3*$scale" | bc -l) ;
+				lz3=$(echo "scale=8; $lz3*$scale" | bc -l) ;
+        		        ll3=$(echo "scale=8; sqrt(($lx3^2)+($ly3^2)+($lz3^2))" | bc -l) ;
+
+printf "%15.8f %13.8f %13.8f\n" $lx1 $ly1 $lz1
+printf "%15.8f %13.8f %13.8f\n" $lx2 $ly2 $lz2
+printf "%15.8f %13.8f %13.8f\n" $lx3 $ly3 $lz3
+
+}
+#---------------------------------------------------------------------
+
+
+
+#-----find number of atoms in cell
+	if [[ `grep "Begin Atoms_Frac" $inpfile` ]]
+	then
+		tal="Frac"
+	else
+		tal="Cart"
+	fi
+
+nat=0
+lgin=`cat $inpfile | wc -l`
+for ((i=1;i<=$lgin;i++))
+do
+        case $tal in
+	"Cart" )
+		unit=`cat $inpfile | grep -A 1 "Begin Atoms_Cart" | tail -1`
+		if [ "$unit" = "ang" ] || [ "$unitlat" = "Ang" ] ||[ "$unitlat" = "ANG" ] || [ "$unit" = "bohr" ] || [ "$unitlat" = "Bohr" ] || [ "$unitlat" = "BOHR" ]
+		then
+			testendline=`cat $inpfile | grep -A $i "Begin Atoms_Cart" | tail -1`
+			case $testendline in
+			"End Atoms_Cart" ) nat=$[i-2] ; break ;;
+			* ) continue ;;
+			esac 
+		
+		else
+			testendline=`cat $inpfile | grep -A $i "Begin Atoms_Cart" | tail -1`
+			case $testendline in
+			"End Atoms_Cart" ) nat=$[i-1] ; break ;;
+			* ) continue ;;
+			esac
+		fi ;;
+	"Frac" )
+	
+		testendline=`cat $inpfile | grep -A $i "Begin Atoms_Frac" | tail -1`
+		case $testendline in
+		"End Atoms_Frac" ) nat=$[i-1] ; break ;;
+		* ) continue ;;
+		esac ;;
+	* ) continue ;;
+        esac
+done
+#-----------------------------------------------------------------------
+
+#-------------add crys
+echo " CRYSTAL" 
+echo " PRIMVEC"
+addcrys
+echo " PRIMCOORD"
+echo " "$nat" 1"
+#-----------------------------------------------------------------------
+
+
+
+#-------------add atoms
+unit=`cat $inpfile | grep -A 1 "Begin Atoms_Cart" | tail -1` ; #echo $unit
+for ((i=1;i<=$nat;i++))
+do
+        case $tal in
+	"Cart" )
+			if [ "$unit" = "ang" ] || [ "$unitlat" = "Ang" ] ||[ "$unitlat" = "ANG" ]
+			then
+				scale=1
+				j=1
+				atomline=$[i+j]
+				aname=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $1}'` ;
+				xc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $2}'` ;
+				yc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $3}'` ;
+				zc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $4}'` ;
+				
+			elif [ "$unit" = "bohr" ] || [ "$unitlat" = "Bohr" ] || [ "$unitlat" = "BOHR" ]
+			then
+				scale=0.52917721092
+				j=1
+				atomline=$[i+j] ; #echo $atomline
+				aname=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $1}'` ;
+				acc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $2}'` ;
+				bcc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $3}'` ; #echo $bcc
+				ccc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $4}'` ;
+
+				xc=$(echo "scale=8; ($acc)*($scale)" | bc -l) ;
+	                        yc=$(echo "scale=8; ($bcc)*($scale)" | bc -l) ; #echo $yc
+        	                zc=$(echo "scale=8; ($ccc)*($scale)" | bc -l) ;
+				
+			else
+				j=0
+				atomline=$[i+j]
+				aname=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $1}'` ;
+				xc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $2}'` ;
+				yc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $3}'` ;
+				zc=`cat $inpfile | grep -A $atomline "Begin Atoms_Cart" | tail -1 | awk '{print $4}'` ;
+			fi ;
+			printf "%s %13.8f %13.8f %13.8f\n" $aname $xc $yc $zc ;;
+	"Frac" )
+			af=`cat $inpfile | grep -A $i "Begin Atoms_Frac" | tail -1 | awk '{print $2}'` ;
+			bf=`cat $inpfile | grep -A $i "Begin Atoms_Frac" | tail -1 | awk '{print $3}'` ;
+			cf=`cat $inpfile | grep -A $i "Begin Atoms_Frac" | tail -1 | awk '{print $4}'` ;
+
+			xf=$(echo "scale=8; $af*($lx1)+$bf*($lx2)+$cf*($lx3)" | bc -l) ;
+                        yf=$(echo "scale=8; $af*($ly1)+$bf*($ly2)+$cf*($ly3)" | bc -l) ;
+                        zf=$(echo "scale=8; $af*($lz1)+$bf*($lz2)+$cf*($lz3)" | bc -l) ;
+
+			aname=`cat $inpfile | grep -A $i "Begin Atoms_Frac" | tail -1 | awk '{print $1}'` ;
+			printf "%s    %13.8f %13.8f %13.8f\n" $aname $xf $yf $zf ;;
+		* ) continue ;;
+        esac
+done
+#--------------------------------------------------------------------
