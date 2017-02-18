@@ -27,6 +27,6 @@ If you see any bug in this plugin you may send your input file and a report abou
 
 Author: Ahmad Abdolmaleki
 
-website: ahmadubuntu.ir
+website: https://github.com/ahmadubuntu
 
 researchgate: https://www.researchgate.net/profile/Ahmad_Abdolmaleki
